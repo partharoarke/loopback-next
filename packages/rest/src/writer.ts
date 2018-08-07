@@ -6,6 +6,7 @@
 import {OperationRetval, Response} from './types';
 import {HttpError} from 'http-errors';
 import {Readable} from 'stream';
+const buildResponseData = require('strong-error-handler/lib/data-builder');
 
 /**
  * Writes the result from Application controller method
@@ -59,7 +60,6 @@ export function writeResultToResponse(
  */
 export function writeErrorToResponse(response: Response, error: Error) {
   const e = <HttpError>error;
-  const statusCode = (response.statusCode = e.statusCode || e.status || 500);
   if (e.headers) {
     // Set response headers for the error
     for (const h in e.headers) {
@@ -67,9 +67,9 @@ export function writeErrorToResponse(response: Response, error: Error) {
     }
   }
   // Build an error object
-  const errObj: Partial<HttpError> = {
-    statusCode,
-  };
+  const errObj = buildResponseData(e, {});
+  response.statusCode = errObj.statusCode;
+
   if (e.expose) {
     // Expose other properties if the `expose` flag is set to `true`
     for (const p in e) {

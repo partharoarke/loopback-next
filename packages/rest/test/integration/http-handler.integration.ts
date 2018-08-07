@@ -250,6 +250,7 @@ describe('HttpHandler', () => {
         .expect(415, {
           message:
             'Content-type application/x-www-form-urlencoded is not supported.',
+          name: 'UnsupportedMediaTypeError',
           statusCode: 415,
         });
     });
@@ -260,7 +261,11 @@ describe('HttpHandler', () => {
         .post('/show-body')
         .set('content-type', 'application/json')
         .send('malformed-json')
-        .expect(400, {statusCode: 400});
+        .expect(400, {
+          message: 'Unexpected token m in JSON at position 0',
+          name: 'SyntaxError',
+          statusCode: 400,
+        });
     });
 
     function givenBodyParamController() {
@@ -329,7 +334,7 @@ describe('HttpHandler', () => {
   });
 
   context('error handling', () => {
-    it('handles errors throws by controller constructor', () => {
+    it('handles errors thrown by controller constructor', () => {
       const spec = anOpenApiSpec()
         .withOperationReturningString('get', '/hello', 'greet')
         .build();
@@ -344,6 +349,7 @@ describe('HttpHandler', () => {
 
       logErrorsExcept(500);
       return client.get('/hello').expect(500, {
+        message: 'Internal Server Error',
         statusCode: 500,
       });
     });
@@ -364,6 +370,7 @@ describe('HttpHandler', () => {
 
       await client.get('/hello').expect(404, {
         message: 'Controller method not found: TestController.unknownMethod',
+        name: 'NotFoundError',
         statusCode: 404,
       });
     });
@@ -394,6 +401,7 @@ describe('HttpHandler', () => {
         .expect('X-BAD-REQ', 'hello')
         .expect(400, {
           message: 'Bad hello',
+          name: 'BadRequestError',
           statusCode: 400,
         });
     });
@@ -418,6 +426,7 @@ describe('HttpHandler', () => {
       logErrorsExcept(500);
 
       await client.get('/hello').expect(500, {
+        message: 'Internal Server Error',
         statusCode: 500,
       });
     });
