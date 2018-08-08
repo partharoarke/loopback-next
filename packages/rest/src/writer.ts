@@ -67,8 +67,8 @@ export function writeErrorToResponse(response: Response, error: Error) {
     }
   }
   // Build an error object
-  const errObj = buildResponseData(e, {});
-  response.statusCode = errObj.statusCode;
+  const errObj: Partial<HttpError> = buildResponseData(e, {});
+  response.statusCode = errObj.statusCode!;
 
   if (e.expose) {
     // Expose other properties if the `expose` flag is set to `true`
