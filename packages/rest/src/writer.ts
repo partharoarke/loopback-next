@@ -6,7 +6,7 @@
 import {OperationRetval, Response} from './types';
 import {HttpError} from 'http-errors';
 import {Readable} from 'stream';
-const buildResponseData = require('strong-error-handler/lib/data-builder');
+const buildResponseData = require('strong-error-handler').buildResponseData;
 
 /**
  * Writes the result from Application controller method
