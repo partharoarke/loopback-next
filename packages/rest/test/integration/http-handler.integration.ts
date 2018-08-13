@@ -12,10 +12,11 @@ import {
   FindRouteProvider,
   InvokeMethodProvider,
   RejectProvider,
+  defaultErrorHandlerOptions,
 } from '../..';
 import {ControllerSpec, get} from '@loopback/openapi-v3';
 import {Context} from '@loopback/context';
-import {Client, createClientForHandler} from '@loopback/testlab';
+import {Client, createClientForHandler, expect} from '@loopback/testlab';
 import * as HttpErrors from 'http-errors';
 import {ParameterObject, RequestBodyObject} from '@loopback/openapi-v3-types';
 import {anOpenApiSpec, anOperationSpec} from '@loopback/openapi-spec-builder';
@@ -248,10 +249,12 @@ describe('HttpHandler', () => {
         .post('/show-body')
         .send('key=value')
         .expect(415, {
-          message:
-            'Content-type application/x-www-form-urlencoded is not supported.',
-          name: 'UnsupportedMediaTypeError',
-          statusCode: 415,
+          error: {
+            message:
+              'Content-type application/x-www-form-urlencoded is not supported.',
+            name: 'UnsupportedMediaTypeError',
+            statusCode: 415,
+          },
         });
     });
 
@@ -262,9 +265,11 @@ describe('HttpHandler', () => {
         .set('content-type', 'application/json')
         .send('malformed-json')
         .expect(400, {
-          message: 'Unexpected token m in JSON at position 0',
-          name: 'SyntaxError',
-          statusCode: 400,
+          error: {
+            message: 'Unexpected token m in JSON at position 0',
+            name: 'SyntaxError',
+            statusCode: 400,
+          },
         });
     });
 
@@ -349,8 +354,10 @@ describe('HttpHandler', () => {
 
       logErrorsExcept(500);
       return client.get('/hello').expect(500, {
-        message: 'Internal Server Error',
-        statusCode: 500,
+        error: {
+          message: 'Internal Server Error',
+          statusCode: 500,
+        },
       });
     });
 
@@ -369,9 +376,11 @@ describe('HttpHandler', () => {
       logErrorsExcept(404);
 
       await client.get('/hello').expect(404, {
-        message: 'Controller method not found: TestController.unknownMethod',
-        name: 'NotFoundError',
-        statusCode: 404,
+        error: {
+          message: 'Controller method not found: TestController.unknownMethod',
+          name: 'NotFoundError',
+          statusCode: 404,
+        },
       });
     });
 
@@ -387,23 +396,20 @@ describe('HttpHandler', () => {
       class TestController {
         @get('/hello')
         hello() {
-          const err = new HttpErrors.BadRequest('Bad hello');
-          err.headers = {'X-BAD-REQ': 'hello'};
-          throw err;
+          throw new HttpErrors.BadRequest('Bad hello');
         }
       }
 
       givenControllerClass(TestController, spec);
       logErrorsExcept(400);
 
-      await client
-        .get('/hello')
-        .expect('X-BAD-REQ', 'hello')
-        .expect(400, {
+      await client.get('/hello').expect(400, {
+        error: {
           message: 'Bad hello',
           name: 'BadRequestError',
           statusCode: 400,
-        });
+        },
+      });
     });
 
     it('handles 500 error thrown from the method', async () => {
@@ -426,7 +432,39 @@ describe('HttpHandler', () => {
       logErrorsExcept(500);
 
       await client.get('/hello').expect(500, {
-        message: 'Internal Server Error',
+        error: {
+          message: 'Internal Server Error',
+          statusCode: 500,
+        },
+      });
+    });
+
+    it('respects error handler options', async () => {
+      rootContext
+        .bind(RestBindings.SequenceActions.REJECT_OPTIONS)
+        .to({debug: true});
+
+      const spec = anOpenApiSpec()
+        .withOperation(
+          'get',
+          '/hello',
+          anOperationSpec().withOperationName('hello'),
+        )
+        .build();
+
+      class TestController {
+        @get('/hello')
+        hello() {
+          throw new HttpErrors.InternalServerError('Bad hello');
+        }
+      }
+
+      givenControllerClass(TestController, spec);
+      logErrorsExcept(500);
+
+      const response = await client.get('/hello').expect(500);
+      expect(response.body.error).to.containDeep({
+        message: 'Bad hello',
         statusCode: 500,
       });
     });
@@ -446,6 +484,9 @@ describe('HttpHandler', () => {
       .to(createUnexpectedHttpErrorLogger());
     rootContext.bind(SequenceActions.SEND).to(writeResultToResponse);
     rootContext.bind(SequenceActions.REJECT).toProvider(RejectProvider);
+    rootContext
+      .bind(SequenceActions.REJECT_OPTIONS)
+      .to(defaultErrorHandlerOptions);
 
     rootContext.bind(RestBindings.SEQUENCE).toClass(DefaultSequence);
 

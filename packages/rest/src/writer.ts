@@ -4,9 +4,8 @@
 // License text available at https://opensource.org/licenses/MIT
 
 import {OperationRetval, Response} from './types';
-import {HttpError} from 'http-errors';
 import {Readable} from 'stream';
-const buildResponseData = require('strong-error-handler').buildResponseData;
+import {ErrorHandlerOptions} from 'strong-error-handler';
 
 /**
  * Writes the result from Application controller method
@@ -53,37 +52,4 @@ export function writeResultToResponse(
   response.end();
 }
 
-/**
- * Write an error into the HTTP response
- * @param response HTTP response
- * @param error Error
- */
-export function writeErrorToResponse(response: Response, error: Error) {
-  const e = <HttpError>error;
-  if (e.headers) {
-    // Set response headers for the error
-    for (const h in e.headers) {
-      response.setHeader(h, e.headers[h]);
-    }
-  }
-  // Build an error object
-  const errObj: Partial<HttpError> = buildResponseData(e, {});
-  response.statusCode = errObj.statusCode!;
-
-  if (e.expose) {
-    // Expose other properties if the `expose` flag is set to `true`
-    for (const p in e) {
-      if (
-        p === 'headers' ||
-        p === 'expose' ||
-        p === 'status' ||
-        p === 'statusCode'
-      )
-        continue;
-      errObj[p] = e[p];
-    }
-  }
-  response.setHeader('Content-Type', 'application/json');
-  response.write(JSON.stringify(errObj));
-  response.end();
-}
+export const defaultErrorHandlerOptions: ErrorHandlerOptions = {log: false};

@@ -27,6 +27,7 @@ import {
 import {OpenAPIObject} from '@loopback/openapi-v3-types';
 import {HttpProtocol} from '@loopback/http-server';
 import * as https from 'https';
+import {ErrorHandlerOptions} from 'strong-error-handler';
 
 /**
  * RestServer-specific bindings
@@ -109,6 +110,9 @@ export namespace RestBindings {
      */
     export const REJECT = BindingKey.create<Reject>(
       'rest.sequence.actions.reject',
+    );
+    export const REJECT_OPTIONS = BindingKey.create<ErrorHandlerOptions>(
+      'rest.sequence.actions.reject.options',
     );
   }
 
