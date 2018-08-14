@@ -440,9 +440,7 @@ describe('HttpHandler', () => {
     });
 
     it('respects error handler options', async () => {
-      rootContext
-        .bind(RestBindings.SequenceActions.REJECT_OPTIONS)
-        .to({debug: true});
+      rootContext.bind(RestBindings.ERROR_HANDLER_OPTIONS).to({debug: true});
 
       const spec = anOpenApiSpec()
         .withOperation(
@@ -485,7 +483,7 @@ describe('HttpHandler', () => {
     rootContext.bind(SequenceActions.SEND).to(writeResultToResponse);
     rootContext.bind(SequenceActions.REJECT).toProvider(RejectProvider);
     rootContext
-      .bind(SequenceActions.REJECT_OPTIONS)
+      .bind(RestBindings.ERROR_HANDLER_OPTIONS)
       .to(defaultErrorHandlerOptions);
 
     rootContext.bind(RestBindings.SEQUENCE).toClass(DefaultSequence);

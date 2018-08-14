@@ -21,11 +21,11 @@ import {
   RejectProvider,
   ParseParamsProvider,
   SendProvider,
+  defaultErrorHandlerOptions,
 } from './providers';
 import {RestServer, RestServerConfig} from './rest.server';
 import {DefaultSequence} from './sequence';
 import {createEmptyApiSpec} from '@loopback/openapi-v3-types';
-import {defaultErrorHandlerOptions} from './writer';
 
 export class RestComponent implements Component {
   providers: ProviderMap = {
@@ -49,9 +49,7 @@ export class RestComponent implements Component {
     @inject(RestBindings.CONFIG) config?: RestComponentConfig,
   ) {
     app.bind(RestBindings.SEQUENCE).toClass(DefaultSequence);
-    app
-      .bind(RestBindings.SequenceActions.REJECT_OPTIONS)
-      .to(defaultErrorHandlerOptions);
+    app.bind(RestBindings.ERROR_HANDLER_OPTIONS).to(defaultErrorHandlerOptions);
     app.bind(RestBindings.API_SPEC).to(createEmptyApiSpec());
   }
 }

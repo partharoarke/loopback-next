@@ -63,6 +63,13 @@ export namespace RestBindings {
    * Internal binding key for http-handler
    */
   export const HANDLER = BindingKey.create<HttpHandler>('rest.handler');
+  /**
+   * Binding key for setting and injecting Reject action's error handling
+   * options
+   */
+  export const ERROR_HANDLER_OPTIONS = BindingKey.create<ErrorHandlerOptions>(
+    'rest.sequence.actions.reject.options',
+  );
 
   /**
    * Binding key for setting and injecting an OpenAPI spec
@@ -110,9 +117,6 @@ export namespace RestBindings {
      */
     export const REJECT = BindingKey.create<Reject>(
       'rest.sequence.actions.reject',
-    );
-    export const REJECT_OPTIONS = BindingKey.create<ErrorHandlerOptions>(
-      'rest.sequence.actions.reject.options',
     );
   }
 

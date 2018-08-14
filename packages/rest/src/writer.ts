@@ -5,7 +5,6 @@
 
 import {OperationRetval, Response} from './types';
 import {Readable} from 'stream';
-import {ErrorHandlerOptions} from 'strong-error-handler';
 
 /**
  * Writes the result from Application controller method
@@ -51,5 +50,3 @@ export function writeResultToResponse(
   }
   response.end();
 }
-
-export const defaultErrorHandlerOptions: ErrorHandlerOptions = {log: false};
