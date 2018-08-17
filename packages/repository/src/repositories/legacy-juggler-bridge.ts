@@ -210,12 +210,13 @@ export class DefaultCrudRepository<T extends Entity, ID>
   }
 
   async findById(id: ID, filter?: Filter, options?: Options): Promise<T> {
+    options = options || {};
+    // WIP: introducing `strictFind` to return `404` for non-existent resources. Currenyly returns `null`
+    options.strictFind = true;
     const model = await ensurePromise(
       this.modelClass.findById(id, filter, options),
     );
-    if (!model) {
-      throw new Error(`no ${this.modelClass.name} found with id "${id}"`);
-    }
+    // WIP: any error in query should propagate from Juggler
     return this.toEntity(model);
   }
 
