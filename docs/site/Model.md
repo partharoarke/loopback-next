@@ -147,6 +147,14 @@ class MyFlexibleModel extends Entity {
 }
 ```
 
+The default response for a delete request to a non-existent resource is a `200`.
+You can change this behavior to `404` by setting `strictDelete` to `true`.
+
+```ts
+@model({settings: {strictDelete: true}})
+class Todo extends Entity { ... }
+```
+
 ### Model Decorator
 
 The model decorator can be used without any additional parameters, or can be
