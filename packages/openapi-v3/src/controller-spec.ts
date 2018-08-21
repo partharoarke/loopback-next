@@ -93,7 +93,11 @@ function resolveControllerSpec(constructor: Function): ControllerSpec {
     if (!operationSpec) {
       // The operation was defined via @operation(verb, path) with no spec
       operationSpec = {
-        responses: {},
+        responses: {
+          '200': {
+            description: '',
+          },
+        },
       };
       endpoint.spec = operationSpec;
     }

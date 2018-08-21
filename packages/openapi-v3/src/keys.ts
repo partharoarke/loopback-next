@@ -1,6 +1,10 @@
 import {MetadataAccessor} from '@loopback/context';
 import {RestEndpoint, ControllerSpec} from '.';
-import {ParameterObject, RequestBodyObject} from '@loopback/openapi-v3-types';
+import {
+  ParameterObject,
+  RequestBodyObject,
+  ResponseObject,
+} from '@loopback/openapi-v3-types';
 
 // Copyright IBM Corp. 2018. All Rights Reserved.
 // Node module: @loopback/openapi-v3
@@ -47,4 +51,12 @@ export namespace OAI3Keys {
     RequestBodyObject,
     ParameterDecorator
   >('openapi-v3:request-body');
+
+  /**
+   * Metadata key used to set or retrieve `@requestBody` metadata
+   */
+  export const RESPONSE_KEY = MetadataAccessor.create<
+    ResponseObject,
+    MethodDecorator
+  >('openapi-v3:response');
 }
