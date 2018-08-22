@@ -24,6 +24,12 @@ function run(argv, options) {
   const glob = require('glob');
   const fse = require('fs-extra');
 
+  if (options === true) {
+    options = {dryRun: true};
+  } else {
+    options = options || {};
+  }
+
   const packageDir = utils.getPackageDir();
 
   const compilerOpts = argv.slice(2);
@@ -35,6 +41,11 @@ function run(argv, options) {
     compilerOpts,
     '--ignore-resources',
   );
+
+  // Honor --dry from tsc
+  if (utils.isOptionSet(compilerOpts, '--dry')) {
+    options.dryRun = true;
+  }
 
   var target;
 
@@ -126,7 +137,7 @@ function run(argv, options) {
     // Since outDir is set, ts files are compiled into that directory.
     // If ignore-resources flag is not passed, copy resources (non-ts files)
     // to the same outDir as well.
-    if (rootDir && tsConfigFile && !isIgnoreResourcesSet) {
+    if (rootDir && tsConfigFile && !isIgnoreResourcesSet && !options.dryRun) {
       const tsConfig = require(tsConfigFile);
       const dirs = tsConfig.include
         ? tsConfig.include.join('|')
@@ -146,11 +157,21 @@ function run(argv, options) {
 
   args.push(...compilerOpts);
 
-  if (options === true) {
-    options = {dryRun: true};
-  } else {
-    options = options || {};
+  // Move --build or -b as the 1st argument to avoid:
+  // error TS6369: Option '--build' must be the first command line argument.
+  const buildOptions = utils.removeOptions(args, '-b', '--build');
+  if (buildOptions.length) {
+    let projectOptions = utils.removeOptions(args, '-p', '--project');
+    projectOptions = projectOptions.filter(p => !p.startsWith('-'));
+    // Remove conflict options with '--build'
+    utils.removeOptions(args, '--outDir', '--target');
+    if (buildOptions.length === 1) {
+      args.unshift(...buildOptions, ...projectOptions);
+    } else {
+      args.unshift(...buildOptions);
+    }
   }
+
   return utils.runCLI('typescript/lib/tsc', args, {cwd, ...options});
 }
 

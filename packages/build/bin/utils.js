@@ -194,6 +194,26 @@ function isOptionSet(opts, ...optionNames) {
   );
 }
 
+/**
+ * Remove options and their values from args
+ */
+function removeOptions(args, ...options) {
+  const removed = [];
+  for (const e of options) {
+    const index = args.indexOf(e);
+    if (index !== -1) {
+      const next = args[index + 1];
+      if (typeof next === 'string' && !next.startsWith('-')) {
+        // The next element is the value of the option, remove it too
+        removed.push(...args.splice(index, 2));
+      } else {
+        removed.push(...args.splice(index, 1));
+      }
+    }
+  }
+  return removed;
+}
+
 exports.getCompilationTarget = getCompilationTarget;
 exports.getDistribution = getDistribution;
 exports.getRootDir = getRootDir;
@@ -203,3 +223,4 @@ exports.resolveCLI = resolveCLI;
 exports.runCLI = runCLI;
 exports.runShell = runShell;
 exports.isOptionSet = isOptionSet;
+exports.removeOptions = removeOptions;
