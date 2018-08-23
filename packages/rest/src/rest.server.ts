@@ -123,6 +123,7 @@ export class RestServer extends Context implements Server, HttpServerLike {
    */
   public requestHandler: HttpRequestListener;
 
+  protected _config: RestServerConfig;
   protected _httpHandler: HttpHandler;
   protected get httpHandler(): HttpHandler {
     this._setupHandlerIfNeeded();
@@ -146,47 +147,48 @@ export class RestServer extends Context implements Server, HttpServerLike {
    *
    * @param {Application} app The application instance (injected via
    * CoreBindings.APPLICATION_INSTANCE).
-   * @param {RestServerConfig=} options The configuration options (injected via
+   * @param {RestServerConfig=} config The configuration options (injected via
    * RestBindings.CONFIG).
    *
    */
   constructor(
     @inject(CoreBindings.APPLICATION_INSTANCE) app: Application,
-    @inject(RestBindings.CONFIG) options?: RestServerConfig,
+    @inject(RestBindings.CONFIG) config?: RestServerConfig,
   ) {
     super(app);
 
-    options = options || {};
+    config = config || {};
 
     // Can't check falsiness, 0 is a valid port.
-    if (options.port == null) {
-      options.port = 3000;
+    if (config.port == null) {
+      config.port = 3000;
     }
-    if (options.host == null) {
+    if (config.host == null) {
       // Set it to '' so that the http server will listen on all interfaces
-      options.host = undefined;
+      config.host = undefined;
     }
-    this.bind(RestBindings.PORT).to(options.port);
-    this.bind(RestBindings.HOST).to(options.host);
-    this.bind(RestBindings.PROTOCOL).to(options.protocol || 'http');
-    this.bind(RestBindings.HTTPS_OPTIONS).to(options);
+    this._config = config;
+    this.bind(RestBindings.PORT).to(config.port);
+    this.bind(RestBindings.HOST).to(config.host);
+    this.bind(RestBindings.PROTOCOL).to(config.protocol || 'http');
+    this.bind(RestBindings.HTTPS_OPTIONS).to(config);
 
-    if (options.sequence) {
-      this.sequence(options.sequence);
+    if (config.sequence) {
+      this.sequence(config.sequence);
     }
 
-    this._setupRequestHandler(options);
+    this._setupRequestHandler();
 
     this.bind(RestBindings.HANDLER).toDynamicValue(() => this.httpHandler);
   }
 
-  protected _setupRequestHandler(options: RestServerConfig) {
+  protected _setupRequestHandler() {
     this._expressApp = express();
     this.requestHandler = this._expressApp;
 
     // Allow CORS support for all endpoints so that users
     // can test with online SwaggerUI instance
-    const corsOptions = options.cors || {
+    const corsOptions = this._config.cors || {
       origin: '*',
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       preflightContinue: false,
@@ -198,7 +200,7 @@ export class RestServer extends Context implements Server, HttpServerLike {
 
     // Mount our router & request handler
     this._expressApp.use((req, res, next) => {
-      this._handleHttpRequest(req, res, options!).catch(next);
+      this._handleHttpRequest(req, res).catch(next);
     });
 
     // Mount our error handler
@@ -209,11 +211,7 @@ export class RestServer extends Context implements Server, HttpServerLike {
     );
   }
 
-  protected _handleHttpRequest(
-    request: Request,
-    response: Response,
-    options: RestServerConfig,
-  ) {
+  protected _handleHttpRequest(request: Request, response: Response) {
     if (
       request.method === 'GET' &&
       request.url &&
@@ -234,7 +232,7 @@ export class RestServer extends Context implements Server, HttpServerLike {
       request.url &&
       request.url === '/swagger-ui'
     ) {
-      return this._redirectToSwaggerUI(request, response, options);
+      return this._redirectToSwaggerUI(request, response);
     }
     return this.httpHandler.handleRequest(request, response);
   }
@@ -336,11 +334,18 @@ export class RestServer extends Context implements Server, HttpServerLike {
   private async _serveOpenApiSpec(
     request: Request,
     response: Response,
-    options?: OpenApiSpecOptions,
+    settings?: OpenApiSpecOptions,
   ) {
-    options = options || {version: '3.0.0', format: 'json'};
+    settings = settings || {version: '3.0.0', format: 'json'};
     let specObj = this.getApiSpec();
-    if (options.format === 'json') {
+
+    // Set up the server url for the openapi spec per request
+    const servers = specObj.servers;
+    const serverUrl = this._getUrlForClient(request);
+    if (servers && servers.length === 1 && servers[0].url === '/') {
+      specObj.servers = [{url: serverUrl}];
+    }
+    if (settings.format === 'json') {
       const spec = JSON.stringify(specObj, null, 2);
       response.setHeader('content-type', 'application/json; charset=utf-8');
       response.end(spec, 'utf-8');
@@ -349,24 +354,26 @@ export class RestServer extends Context implements Server, HttpServerLike {
       response.setHeader('content-type', 'text/yaml; charset=utf-8');
       response.end(yaml, 'utf-8');
     }
+    // Restore original servers
+    specObj.servers = servers;
   }
 
   /**
    * Get the URL of the request sent by the client
    * @param request Http request
    */
-  private _getUrlForClient(request: Request, options: RestServerConfig) {
+  private _getUrlForClient(request: Request) {
     const protocol =
       (request.get('x-forwarded-proto') || '').split(',')[0] ||
       request.protocol ||
-      options.protocol ||
+      this._config.protocol ||
       'http';
     let host =
       (request.get('x-forwarded-host') || '').split(',')[0] ||
       request.headers.host!.replace(/:[0-9]+/, '');
     let port =
       (request.get('x-forwarded-port') || '').split(',')[0] ||
-      options.port ||
+      this._config.port ||
       (request.headers.host!.match(/:([0-9]+)/) || [])[1] ||
       '';
 
@@ -380,17 +387,10 @@ export class RestServer extends Context implements Server, HttpServerLike {
     return protocol + '://' + host;
   }
 
-  private async _redirectToSwaggerUI(
-    request: Request,
-    response: Response,
-    options: RestServerConfig,
-  ) {
+  private async _redirectToSwaggerUI(request: Request, response: Response) {
     const baseUrl =
-      options.apiExplorerUrl || 'https://loopback.io/api-explorer';
-    const openApiUrl = `${this._getUrlForClient(
-      request,
-      options,
-    )}/openapi.json`;
+      this._config.apiExplorerUrl || 'https://loopback.io/api-explorer';
+    const openApiUrl = `${this._getUrlForClient(request)}/openapi.json`;
     const fullUrl = `${baseUrl}?url=${openApiUrl}`;
     response.redirect(308, fullUrl);
   }

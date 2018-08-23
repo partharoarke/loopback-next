@@ -136,7 +136,6 @@ describe('RestServer (integration)', () => {
     );
     expect(response.body).to.containDeep({
       openapi: '3.0.0',
-      servers: [{url: '/'}],
       info: {title: 'LoopBack Application', version: '1.0.0'},
       paths: {
         '/greet': {
@@ -155,6 +154,7 @@ describe('RestServer (integration)', () => {
         },
       },
     });
+    expect(response.body.servers[0].url).to.match(/http:\/\/127.0.0.1\:\d+/);
     expect(response.get('Access-Control-Allow-Origin')).to.equal('*');
     expect(response.get('Access-Control-Allow-Credentials')).to.equal('true');
   });
@@ -189,11 +189,12 @@ paths:
             'text/plain':
               schema:
                 type: string
-servers:
-  - url: /
     `);
     // Use json for comparison to tolerate textual diffs
-    expect(yaml.safeLoad(response.text)).to.eql(expected);
+    const json = yaml.safeLoad(response.text);
+    expect(json).to.containDeep(expected);
+    expect(json.servers[0].url).to.match(/http:\/\/127.0.0.1\:\d+/);
+
     expect(response.get('Access-Control-Allow-Origin')).to.equal('*');
     expect(response.get('Access-Control-Allow-Credentials')).to.equal('true');
   });
