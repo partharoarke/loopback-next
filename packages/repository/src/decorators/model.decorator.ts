@@ -99,8 +99,10 @@ export function property(definition?: Partial<PropertyDefinition>) {
     !definition.itemType
   ) {
     // this path is taken when cyclic dependency is detected
-    // in that case, a ModelResolver should be used instead
-    throw new Error('target model is undefined');
+    // in that case, a TypeResolver should be used instead
+    throw new Error(
+      'Target model is undefined. Please consider using TypeResolver (() => TargetModel)',
+    );
   }
   return PropertyDecoratorFactory.createDecorator(
     MODEL_PROPERTIES_KEY,

@@ -90,9 +90,7 @@ export function belongsTo<T extends typeof Entity>(
 
       if (!hasPrimaryKey && !hasKeyTo) {
         throw new Error(
-          `primary key not found on ${
-            targetModel.name
-          } model's juggler definition`,
+          `primary key not found on ${targetModel.name} model's definition`,
         );
       }
     }
@@ -145,7 +143,7 @@ export function hasMany<T extends typeof Entity>(
         throw new Error(
           `foreign key ${defaultFkName} not found on ${
             targetModel.name
-          } model's juggler definition`,
+          } model's definition`,
         );
       }
       Object.assign(meta, {keyTo: defaultFkName});
